@@ -15,7 +15,7 @@ def zhidao_train_reader():
     """
     def process_data(data):
         if data['question_type'] == 'ENTITY':
-            return know_graph(''.join(data['documents'][0]['paragraphs']))
+            return know_graph('。'.join(data['documents'][0]['paragraphs']))  # paragraph shouldn't combine together, must add some ending puntuations.
         return ''
 
     def reader():
@@ -39,10 +39,9 @@ def know_graph(text):
     tokens = get_lexer(text)
     print(tokens)
     for item in tokens['items']:
-        if item['pos'] in ['c', 'u', 'xc', 'w']:
-            continue
+        pass
         
     return tokens
 
 def clean_text(text):
-    return BeautifulSoup(text, 'html.parser').text
+    return BeautifulSoup(text, 'html.parser').text      # every tags must end with some puntuations, or they will be a sentence.
