@@ -18,7 +18,29 @@ class TestReader(unittest.TestCase):
         self.assertTrue(get_wordSimilarity("父亲", "儿子") > 0)   #0.40
     
     def test_dependency(self):
-        print(get_dependency('问12366票面：发票文字：宋体、黑体发票号码：采用异型(采用哥特字体)字体印刷，号码为8位，位于发票的右上角。发票编码：发票编码为10位阿拉伯数字。'))
+        #print(get_dependency('票面：发票。文字：宋体、黑体。发票号码：采用异型(采用哥特字体)字体印刷，号码为8位，位于发票的右上角。发票编码：发票编码为10位阿拉伯数字。'))
+        word_list = get_dependency('他什么书都读。')
+        graph(word_list)
 
 if __name__ == "__main__":
     unittest.main()
+
+def graph(word_list):
+    for word in word_list:
+        pass
+
+def COO(token):
+    pass
+
+def SBV(token):
+    return 
+
+
+
+def proper_analy(token, word_list):
+    """
+    It should be callable recursively.
+    :param token: dependency token
+    """
+    if token["deprel"] == "SBV":
+        return (token, SBV(word_list[token['head']]))

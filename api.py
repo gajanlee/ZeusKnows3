@@ -39,11 +39,7 @@ def get_dependency(text):
     # dependency doesn't consider about ':'.
     text = text.replace('：', '为')
     word_list = []
-    for i, word in enumerate(client.depParser(text, options={"mode": 0})["items"], 1):
+    for i, word in enumerate(client.depParser(text, options={"mode": 0})["items"], 1):  # id from 1
         print(i, word)
         word_list.append(word)              # id will increase 1
-    graph(word_list)
     return word_list
-
-def graph(word_list):
-    pass
