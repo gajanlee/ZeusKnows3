@@ -71,11 +71,17 @@ class Tripe_Director:
                  and token2
     """
     def ATT(self, token1, token2):
-        comp_token = self.find_token_by_id(token1.id)
-        if comp_token is not None:
-            comp_token = comp_token + CompositeToken(token2)
-        return comp_token
+        id = self.composite(token1, token2)
+        return id
 
+    def composite(token1, token2):
+        comp_token = self.find_token_by_id(token1.id)
+        if comp_token is None:
+            self.graph_token_list.append([CompositeToken(token1), CompositeToken(token2)])
+        else:
+            comp_token.ids.append(token2.id)
+            comp_token.tokens.append(token2)
+        return len(self.graph_token_list) - 1
     """
     FOB:前置定语，Head方向变换。
     """
