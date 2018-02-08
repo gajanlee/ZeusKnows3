@@ -44,19 +44,23 @@ postag_dict = {
 
 class Tripe_Director:
     def __init__(self, word_list):
-        self.token_list = [Token(word) for word in word_list]
+        self.token_list = [Token(word, i) for i, word in enumerate(word_list)]   # base tokens
+        self.graph_token_list = []  # composite tokens
     
     def graph(self):
-        a = []
-        for token in self.token_list:
-            try:
-                a.append(getattr(self, token.deprel, None)(token, self.HEAD(token)))
-            except:
-                raise CompilerDepError("No this deprelfunc " + token.deprel)
-    
+        for i, token in enumerate(self.token_list):
+            deprel_func = getattr(self, token.deprel, None)
+            if deprel_func is None: raise CompilerDepError("No this deprel-function " + token.deprel)
+            new_token = deprel_func(token, self.HEAD(token))
+            if new_token is None: continue
+
+
     def HEAD(self, token):
         if token.head == -1: return None
         return self.token_list[token.head]
+
+    def find_token_by_id(id):
+        return
 
     def SBV(self, token1, token2):
         return (token1, token2)
@@ -67,7 +71,10 @@ class Tripe_Director:
                  and token2
     """
     def ATT(self, token1, token2):
-        return token1.merge(token2)
+        comp_token = self.find_token_by_id(token1.id)
+        if comp_token is not None:
+            comp_token = comp_token + CompositeToken(token2)
+        return comp_token
 
     """
     FOB:前置定语，Head方向变换。
@@ -83,11 +90,6 @@ class Tripe_Director:
 
     def WP(self, token1, token2):
         pass
-    """
-    Convert HTTP Api word list to 'Token' instance list.
-    """
-    def convert_word(self, word_list):
-        return [Token(word) for word in word_list]
 
 class Tripe:
     """
@@ -108,17 +110,32 @@ class Token:
     Convert token to .
     :param token: is an element of word list.
     """
-    def __init__(self, token):
+    def __init__(self, token, id):
         self.postag = token['postag']
         self.head = token['head'] - 1   # if it is -1, it will be non-head word.
         self.content = token['word']
         self.deprel = token['deprel']
+        self.id = id
 
     def __repr__(self):
         return postag_dict[self.postag] + '\t' + self.content
 
     def merge(self, token):
         self.content += token.content
+        return self
+
+class CompositeToken:
+    def __init__(self, token, id=None):
+        if isinstance(token, Token):
+            self.tokens = [token]
+            self.ids = [token.id]
+        elif isinstance(token, list):
+            self.tokens = token
+            self.ids = id
+
+    def __add__(self, other):
+        if isinstance(other, CompositeToken):
+            return CompositeToken(self.tokens + other.tokens, self.ids + self.ids)
 
 class CompilerDepError(Exception):
     def __init__(self, value):
