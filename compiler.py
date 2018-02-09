@@ -60,7 +60,10 @@ class Tripe_Director:
         return self.token_list[token.head]
 
     def find_token_by_id(id):
-        return
+        for comp_token in self.graph_token_list:
+            if comp_token.contain_id():
+                return comp_token
+        return None
 
     def SBV(self, token1, token2):
         return (token1, token2)
@@ -82,6 +85,7 @@ class Tripe_Director:
             comp_token.ids.append(token2.id)
             comp_token.tokens.append(token2)
         return len(self.graph_token_list) - 1
+
     """
     FOB:前置定语，Head方向变换。
     """
@@ -139,6 +143,9 @@ class CompositeToken:
             self.tokens = token
             self.ids = id
 
+    def contain_id(self, id):
+        return True if id in self.ids else False
+        
     def __add__(self, other):
         if isinstance(other, CompositeToken):
             return CompositeToken(self.tokens + other.tokens, self.ids + self.ids)
