@@ -42,32 +42,72 @@ postag_dict = {
     't':'时间词',
     'un':'未知词',}
 
-class Tripe_Director:
+class Triple_Director:
     def __init__(self, word_list):
         self.token_list = [Token(word, i) for i, word in enumerate(word_list)]   # base tokens
         self.graph_token_list = []  # composite tokens
+        self.relation_list = []
+        self.relations = []
     
     def graph(self):
         for i, token in enumerate(self.token_list):
             deprel_func = getattr(self, token.deprel, None)
             if deprel_func is None: raise CompilerDepError("No this deprel-function " + token.deprel)
-            new_token = deprel_func(token, self.HEAD(token))
-            if new_token is None: continue
+            deprel_func(token, self.HEAD(token))
+            
+        self.generate_relations()
+        print(self.relation_list)
+        print(self.graph_token_list)
+        print(self.relations)
 
 
+    def generate_relations(self):
+        for relation in self.relation_list:
+            comp_token = self.find_token_by_id(relation[1])
+            # not exist composite token with relation first element's token id.
+            if comp_token is None:  
+                find_id = [relation[1]]
+            else:
+                find_id = comp_token.ids
+            
+            for find_relation in self.relation_list:
+                if find_relation[0] in find_id:
+                    self.relations.append( Triple(relation[0], find_relation[1], relation[1]))
+    
     def HEAD(self, token):
         if token.head == -1: return None
         return self.token_list[token.head]
 
-    def find_token_by_id(id):
+    def find_token_by_id(self, id):
         for comp_token in self.graph_token_list:
-            if comp_token.contain_id():
+            if comp_token.contain_id(id):
                 return comp_token
         return None
-
-    def SBV(self, token1, token2):
-        return (token1, token2)
     
+    # bug, should also find token2.id
+    def composite(self, token1, token2):
+        comp_token, comp_token2 = self.find_token_by_id(token1.id), self.find_token_by_id(token2.id)
+        if comp_token is None and comp_token2 is None:
+            self.graph_token_list.append(CompositeToken(token1) + CompositeToken(token2))
+        elif comp_token:
+            comp_token.ids.append(token2.id)
+            comp_token.tokens.append(token2)
+        else:
+            comp_token2.ids.append(token1.id)
+            comp_token2.tokens.append(token1)
+        return len(self.graph_token_list) - 1
+
+    
+    """
+    ADJ： 附加关系
+    """
+    def ADJ(self, token1, token2):
+        pass
+    
+    # 当token2是核心词汇时，应当联合所有的修饰词adv。
+    def ADV(self, token1, token2):
+        self.composite(token1, token2)
+
     """
     ATT:定中关系,应当合并为一个词语。
     :param token*: token1 -> token2,
@@ -76,35 +116,48 @@ class Tripe_Director:
     def ATT(self, token1, token2):
         id = self.composite(token1, token2)
         return id
+    
+    """uncom
+    APP: 同位关系，我们/大家，
+    本句话建立的关系应当是相同的。
+    """
+    def APP(self, token1, token2):
+        pass
 
-    def composite(token1, token2):
-        comp_token = self.find_token_by_id(token1.id)
-        if comp_token is None:
-            self.graph_token_list.append([CompositeToken(token1), CompositeToken(token2)])
-        else:
-            comp_token.ids.append(token2.id)
-            comp_token.tokens.append(token2)
-        return len(self.graph_token_list) - 1
-
+    """
+    COO: 并列关系,奔腾/咆哮，
+    应当合并为一个词语
+    """
+    def COO(self, token1, token2):
+        self.composite(token1, token2)
+    
+    
     """
     FOB:前置定语，Head方向变换。
     """
     def FOB(self, token1, token2):
-        return (token2, token1)
+        self.relation_list.append((token2.id, token1.id))
 
     def HED(self, token1, token2):
         pass
 
-    def ADV(self, token1, token2):
-        return token1.merge(token2)
+    """
+    QUN: 数量关系，三天，三<-天
+    """
+    def QUN(self, token1, token2):
+        self.composite(token1, token2)
+
+
+    def SBV(self, token1, token2):
+        self.relation_list.append((token1.id, token2.id))
 
     def WP(self, token1, token2):
         pass
 
-class Tripe:
+class Triple:
     """
     A Triple tuple contains 
-    : token1, the subjective token
+    : token1, the subjective token's id
     : token2
     : relationship, token1-token2 relationship
     example:
@@ -114,6 +167,9 @@ class Tripe:
         self.token1 = token1
         self.token2 = token2
         self.relationship = relationship
+
+    def __repr__(self):
+        return "(%s, %s, %s)" % (self.token1, self.token2, self.relationship)
 
 class Token:
     """
@@ -149,6 +205,10 @@ class CompositeToken:
     def __add__(self, other):
         if isinstance(other, CompositeToken):
             return CompositeToken(self.tokens + other.tokens, self.ids + self.ids)
+
+    def __repr__(self):
+        from functools import reduce
+        return reduce(lambda x, y: x+y.content, self.tokens, '')
 
 class CompilerDepError(Exception):
     def __init__(self, value):
